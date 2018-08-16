@@ -82,19 +82,6 @@ end
 %
 % OPTIONAL
 %
-% [--covCSV, -z] : .csv file containing values for different covariates, which
-%           will be used to correct the data accordingly (OPTIONAL). Every
-%           column of the file contains values for a covariate, with the
-%           exception of the first column, which contains subject
-%           identifying information. Correction is performed by solving a
-%           solving a least square problem to estimate the respective
-%           coefficients and then removing their effect from the data. The
-%           effect of ALL provided covariates is removed. If no file is
-%           specified, no correction is performed.
-%
-% NOTE: featureCSV and covCSV files are assumed to have the subjects given
-%       in the same order in their rows
-%
 % [--c, -c] : regularization parameter (positive scalar). smaller values produce
 %     sparser models (OPTIONAL - Default 0.25)
 % [--reg_type, -r] : determines regularization type. 1 -> promotes sparsity in the
@@ -120,7 +107,7 @@ end
 % [--cvfold, -f]: number of folds for cross validation. Default value is 10.
 % [--vo, -j] : verbose output (i.e., also saves input data to verify that all were
 %      read correctly. Default value is 0
-% [--usage, -u]  Prints basic usage message.          
+% [--usage, -u]  Prints basic usage message.
 % [--help, -h]  Prints help information.
 % [--version, -v]  Prints information about software version.
 %
@@ -155,13 +142,6 @@ if( sum(or(strcmpi(varargin,'--outputDir'),strcmpi(varargin,'-o')))==1)
     outputDir=varargin{find(or(strcmp(varargin,'--outputDir'),strcmp(varargin,'-o')))+1};
 else
     error('hydra:argChk','Please specify output directory!');
-end
-
-
-if( sum(or(strcmpi(varargin,'--cov'),strcmpi(varargin,'-z')))==1)
-    covCSV=varargin{find(or(strcmpi(varargin,'--cov'),strcmp(varargin,'-z')))+1};
-else
-    covCSV=[];
 end
 
 if( sum(or(strcmpi(varargin,'--c'),strcmpi(varargin,'-c')))==1)
@@ -299,7 +279,6 @@ disp('Done');
 disp('HYDRA runs with the following parameteres');
 disp(['featureCSV: ' featureCSV]);
 disp(['OutputDir: ' outputDir]);
-disp(['covCSV: ' covCSV])
 disp(['C: ' num2str(params.C)]);
 disp(['reg_type: ' num2str(params.reg_type)]);
 disp(['balanceclasses: ' num2str(params.balanceclasses)]);
@@ -318,14 +297,6 @@ if (~exist(fname,'file'))
     error('hydra:argChk','Input feature .csv file does not exist');
 end
 
-% csv with features
-covfname=covCSV;
-if(~isempty(covfname))
-    if(~exist(covfname,'file'))
-        error('hydra:argChk','Input covariate .csv file does not exist');
-    end
-end
-
 % input data
 % assumption is that the first column contains IDs, and the last contains
 % labels
@@ -335,59 +306,25 @@ ID=input{:,1};
 XK=input{:,2:end-1};
 Y=input{:,end};
 
-% z-score imaging features
-XK=zscore(XK);
-disp('Done');
-
-% input covariate information if necesary
-if(~isempty(covfname))
-    disp('Loading covariates...');
-    covardata = readtable(covfname) ;
-    IDcovar = covardata{:,1};
-    covar = covardata{:,2:end};
-    covar = zscore(covar);
-    disp('Done');
-end
-
-% NOTE: we assume that the imaging data and the covariate data are given in
-% the same order. No test is performed to check that. By choosing to have a
-% verbose output, you can have access to the ID values are read by the
-% software for both the imaging data and the covariates
-
-% verify that we have covariate data and imaging data for the same number
-% of subjects
-if(~isempty(covfname))
-    if(size(covar,1)~=size(XK,1))
-        error('hydra:argChk','The feature .csv and covariate .csv file contain data for different number of subjects');
-    end
-end
-
-% residualize covariates if necessary
-if(~isempty(covfname))
-    disp('Residualize data...');
-    [XK0,~]=GLMcorrection(XK,Y,covar,XK,covar);
-    disp('Done');
-else
-    XK0=XK;
-end
-
 % for each realization of cross-validation
 clustering=params.kmin:params.kstep:params.kmax;
-part=make_xval_partition(size(XK0,1),params.cvfold); %Partition data to 10 groups for cross validation
+part=make_xval_partition(size(XK,1),params.cvfold); %Partition data to 10 groups for cross validation
 % for each fold of the k-fold cross-validation
 disp('Run HYDRA...');
-for f=1:params.cvfold
+for kh=1:length(clustering)
     % for each clustering solution
-    for kh=1:length(clustering)
+    for f=1:params.cvfold
         params.k=clustering(kh);
         disp(['Applying HYDRA for ' num2str(params.k) ' clusters. Fold: ' num2str(f) '/' num2str(params.cvfold)]);
-        model=hydra_solver(XK0(part~=f,:),Y(part~=f,:),[],params);
+        model=hydra_solver(XK(part~=f,:),Y(part~=f,:),[],params);
         YK{kh}(part~=f,f)=model.Yhat;
     end
 end
 disp('Done');
 
-disp('Estimating clustering stabilitiy...')
+
+
+disp('Estimating clustering stability...')
 % estimate cluster stability for the cross-validation experiment
 ARI = zeros(length(clustering),1);
 for kh=1:length(clustering)
@@ -404,11 +341,24 @@ for kh=1:length(clustering)
 end
 disp('Done')
 
+
+disp('Estimating final convex polytope...')
+
+for kh=1:length(clustering)
+    params.k=clustering(kh);
+    params.fixedclustering=1;
+    params.fixedclusteringIDX=-ones(size(XK,1),1);
+    params.fixedclusteringIDX(Y==1,1)=CIDX(Y==1,kh);
+    fullmodel{kh}=hydra_solver(XK,Y,[],params);
+end
+
 disp('Saving results...')
 if(params.vo==0)
     save([outputDir '/HYDRA_results.mat'],'ARI','CIDX','clustering','ID');
+    save([outputDir '/HYDRA_model.mat'],'fullmodel');
 else
     save([outputDir '/HYDRA_results.mat'],'ARI','CIDX','clustering','ID','XK','Y','covar','IDcovar');
+    save([outputDir '/HYDRA_model.mat'],'fullmodel');
 end
 disp('Done')
 end
@@ -600,7 +550,7 @@ fprintf('             (i.e., kmin to kmax, with step kstep). Default  value is 1
 fprintf(' [--cvfold, -f]: number of folds for cross validation. Default value is 10.\n')
 fprintf(' [--vo, -j] : verbose output (i.e., also saves input data to verify that all were\n')
 fprintf('      read correctly. Default value is 0\n')
-fprintf(' [--usage, -u]  Prints basic usage message.     \n');     
+fprintf(' [--usage, -u]  Prints basic usage message.     \n');
 fprintf(' [--help, -h]  Prints help information.\n');
 fprintf(' [--version, -v]  Prints information about software version.\n');
 fprintf('\n')

@@ -103,14 +103,16 @@ ID=input{:,1};
 XK=input{:,2:end};
 HYDRA_model=load(modelFile);
 
-S=zeros(size(XK,1),HYDRA_model.model.params.k);
-####
-for k=1:
-for j=1:HYDRA_model.model.params.k
-    S(:,j)=w_svmpredict(XK,HYDRA_model.fullmodel(j).mdl{j},HYDRA_model.model.params.kernel);
+CIDX = zeros(size(XK,1),length(HYDRA_model.fullmodel));
+for k=1:length(HYDRA_model.fullmodel)
+    clear S
+    S = zeros(size(XK,1),k);
+for j=1:HYDRA_model.fullmodel{k}.params.k
+    S(:,j)=w_svmpredict(XK,HYDRA_model.fullmodel{k}.mdl{j},HYDRA_model.fullmodel{k}.params.kernel);
 end
+[~,CIDX(:,k)] = max(S,[],2);
 end
-[~,CIDX ] = max(S,[],2);
+
 
 disp('Saving results...')
 save([outputDir '/HYDRA_predict_results.mat'],'CIDX','ID');
