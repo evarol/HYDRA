@@ -661,7 +661,7 @@ p = diag(Y) * X;
 A = -[p Y eye(n)];
 B = -ones(n,1);
 lb = [-inf * ones(d+1,1) ;zeros(n,1)];
-options=optimoptions('quadprog','Display','off');
+options=optimoptions('quadprog','Display','off','OptimalityTolerance',1e-8);
 z = quadprog(H,f,A,B,[],[],lb,[],[],options);
 
 mdl.w = z(1:d,:);
@@ -683,16 +683,17 @@ Cw=zeros(size(Y,1),1);
 Cw(idxp)=Cp;
 Cw(idxn)=Cn;
 [n,d]=size(X);
-f=[ones(d,1);ones(d,1);zeros(1,1);C*W.*Cw.*ones(n,1)];
-A=-[diag(Y)*X -diag(Y)*X Y eye(n)];
+H=blkdiag(zeros(d),zeros(d),diag(C*W.*Cw));
+f=[ones(d,1);ones(d,1);zeros(n,1)];
+A=-[diag(Y)*X -diag(Y)*X eye(n)];
 b=-ones(n,1);
-lb=[zeros(d,1);zeros(d,1);-inf(1,1);zeros(n,1)];
-ub=[inf(d,1);inf(d,1);inf(1,1);inf(n,1)];
-options=optimoptions('linprog','Display','off');
-v = linprog(f,A,b,[],[],lb,ub,[],options);
+lb=[zeros(d,1);zeros(d,1);zeros(n,1)];
+ub=[inf(d,1);inf(d,1);inf(n,1)];
+options=optimoptions('quadprog','Display','off','OptimalityTolerance',1e-8);
+v = quadprog(H,f,A,b,[],[],lb,ub,[],options);
 
 mdl.w=v(1:d)-v(d+1:2*d);
-mdl.b=v(2*d+1);
+mdl.b=0;
 end
 
 function S=w_svmpredict(X,mdl,dual)
