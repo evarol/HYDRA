@@ -675,11 +675,17 @@ function S=w_svmpredict(X,mdl,dual)
 
 if strcmpi(mdl.method,'libsvm');
     if dual==0
+        mdl = rmfield(mdl,'method');
         [~,~,S]=svmpredict(ones(size(X,1),1),X,mdl,'-q');
+        mdl.method='libsvm';
     elseif dual==1
+         mdl = rmfield(mdl,'method');
         [~,~,S]=svmpredict(ones(size(X,1),1),[(1:size(X,1))' X],mdl,'-q');
+         mdl.method='libsvm';
     end
 elseif strcmpi(mdl.method,'liblinear');
+     mdl = rmfield(mdl,'method');
     [~,~,S]=predict(ones(size(X,1),1),sparse(X),mdl,'-q');
+     mdl.method='liblinear';
 end
 end
