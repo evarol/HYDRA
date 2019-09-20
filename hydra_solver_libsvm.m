@@ -662,7 +662,6 @@ if any(isnan([Cp Cn]))
     mdl.b=0;
     %warning('Cluster dropped');
     return
-    mdl.method='liblinear';
 end
     XK=sparse(X);
     svmoptions=['-s 5 -w-1' num2str(Cn) ' -w1' num2str(Cp) ' -e' num2str(0.0000001)]; % -e e-6

@@ -381,8 +381,8 @@ for f=1:params.cvfold
     for kh=1:length(clustering)
         params.k=clustering(kh);
         disp(['Applying HYDRA for ' num2str(params.k) ' clusters. Fold: ' num2str(f) '/' num2str(params.cvfold)]);
-        model=hydra_solver(XK0(part~=f,:),Y(part~=f,:),[],params);
-        %model=hydra_solver_libsvm(XK0(part~=f,:),Y(part~=f,:),[],params);
+        %model=hydra_solver(XK0(part~=f,:),Y(part~=f,:),[],params);
+        model=hydra_solver_libsvm(XK0(part~=f,:),Y(part~=f,:),[],params);
         YK{kh}(part~=f,f)=model.Yhat;
     end
 end
