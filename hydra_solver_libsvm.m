@@ -644,10 +644,10 @@ if any(isnan([Cp Cn]))
 end
 if dual==0
     XK=X;
-    svmoptions=['-s 0 -t 0 -w-1' num2str(Cn) ' -w1' num2str(Cp) ' -q'];
+    svmoptions=['-s 0 -t 0 -w-1' num2str(Cn) ' -w1' num2str(Cp) ' -e' num2str(0.0000001)];
 elseif dual==1
     XK=[(1:size(X,1))' X];
-    svmoptions=['-s 0 -t 4 -w-1' num2str(Cn) ' -w1' num2str(Cp) ' -q'];
+    svmoptions=['-s 0 -t 4 -w-1' num2str(Cn) ' -w1' num2str(Cp) ' -e' num2str(0.0000001)];
 end
 
 mdl=svmtrain(W,Y,XK,svmoptions);
@@ -662,9 +662,10 @@ if any(isnan([Cp Cn]))
     mdl.b=0;
     %warning('Cluster dropped');
     return
+    mdl.method='liblinear';
 end
     XK=sparse(X);
-    svmoptions=['-s 5 -w-1' num2str(Cn) ' -w1' num2str(Cp) ' -q'];
+    svmoptions=['-s 5 -w-1' num2str(Cn) ' -w1' num2str(Cp) ' -e' num2str(0.0000001)]; % -e e-6
     mdl=train(W,Y,XK,svmoptions);
     mdl.method='liblinear';
     
