@@ -135,7 +135,9 @@ This mat file stores the model weights for HYDRA that can be used for out of sam
 
 II. HYDRA Out-of-sample (NEW FEATURE - August 2018)
 
-To get out of sample predictions and clustering assignments, first run "hydra" using the training set of data in the same format as described above. Then, run hydra_predict with the following input pattern:
+To get out of sample predictions and clustering assignments, first run "hydra" using the training set of data in the same format as described above. Then, run hydra_predict with the following input pattern. 
+
+!!CAUTION: HYDRA out-of-sample does not support covariate correction. We recommend covariate correcting both the training set and test set prior to running hydra on the training set and hydra_predict on the test set to avoid skewed results.!!
 
 1. In matlab environment:
 
