@@ -127,6 +127,55 @@ CIDX - clustering indices for subjects (rows) at varying levels (columns)
 ARI - adjusted rand index of clustering at varying levels, clustering level at the highest ARI should be selected
 ID - subject ID of rows
 
+2. HYDRA_model.mat in the specified output directory.
+
+This mat file stores the model weights for HYDRA that can be used for out of sample predictions discussed below.
+
+
+
+II. HYDRA Out-of-sample (NEW FEATURE - August 2018)
+
+To get out of sample predictions and clustering assignments, first run "hydra" using the training set of data in the same format as described above. Then, run hydra_predict with the following input pattern:
+
+1. In matlab environment:
+
+hydra_predict('-i','test_out_sample.csv','-o','.','-m','hydra_model.mat')
+
+2. Running matlab compiled HYDRA executables in the command line:
+
+hydra_predict -i test_of_sample.csv -o . -m hydra_model.mat 
+
+Here -i denotes the input csv file that must have the following format:
+
+(Column 1) ID: ID for subject
+(Column 2---(last)) features: features to be used for clustering
+
+NOTE: Label headers names are not strict.
+
+An example input csv file looks as following:
+    
+ID,        feature_1,    feauture_2,    feature_3
+subject_1,    5,        1,        79.3,
+subject_2,    10,        1,        71.4,
+subject_3,    3,        1,        82.7,       
+
+NOTE: Unlike hydra training, hydra_predict does NOT have group labels in the last column. (A common source of error).
+
+-o denotes the output directory
+
+-m denotes the HYDRA model file that is output from hydra training routine.
+
+
+The software returns:
+
+1. HYDRA_predict_results.mat in the specified output directory.
+    
+This mat file stores the following variables
+
+CIDX - clustering indices for subjects (rows) at varying levels (columns)
+ID - subject ID of rows
+
+
 ===========
 4. REFERENCE
 ===========
